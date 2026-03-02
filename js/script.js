@@ -46,31 +46,46 @@ audioDesbloqueado = true;
 }
 
 async function activarEscaner() {
-desbloquearAudio(); // Desbloqueamos el canal al primer toque del botón verde
-sonidoBoton.play().catch(() => {});
+    // 1. Desbloqueo de audio y reseteo visual inmediato [cite: 2026-03-02]
+    desbloquearAudio(); 
+    sonidoBoton.play().catch(() => {}); 
+    
+    // 2. Limpieza total de estados anteriores para evitar bloqueos
+    const sprite = document.getElementById('main-sprite');
+    sprite.onclick = null; 
+    sprite.style.cursor = "default";
+    sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'captured-success');
+    sprite.style.transform = "scale(1)";
+    sprite.style.opacity = "1";
 
-```
-document.getElementById('pokedex-content').style.display = 'none';
-document.getElementById('reader').style.display = 'block';
-
-document.querySelectorAll('.led').forEach(l => {
-    l.classList.remove('success');
-    l.classList.add('animating');
-});
-
-try {
-    await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
-        let code = text.toUpperCase().trim();
-        if (pokemonDB[code]) {
-            html5QrCode.stop().then(() => {
-                pokemonActualData = pokemonDB[code];
-                actualizarPantalla();
-            });
-        }
+    // 3. Cambio de interfaz
+    document.getElementById('pokedex-content').style.display = 'none';
+    document.getElementById('reader').style.display = 'block';
+    
+    document.querySelectorAll('.led').forEach(l => {
+        l.classList.remove('success');
+        l.classList.add('animating');
     });
-} catch (err) { restaurarInterfaz(); }
-```
 
+    try {
+        // Aseguramos que si ya había un escáner, se detenga antes de empezar
+        if(html5QrCode.isScanning) {
+            await html5QrCode.stop();
+        }
+
+        await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
+            let code = text.toUpperCase().trim();
+            if (pokemonDB[code]) {
+                html5QrCode.stop().then(() => {
+                    pokemonActualData = pokemonDB[code];
+                    actualizarPantalla();
+                });
+            }
+        });
+    } catch (err) { 
+        console.error("Error cámara:", err);
+        restaurarInterfaz(); 
+    }
 }
 
 function actualizarPantalla() {
