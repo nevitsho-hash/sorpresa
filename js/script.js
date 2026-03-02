@@ -26,15 +26,13 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
-// DESBLOQUEO DE AUDIO PARA MÓVIL (Técnica del volumen 0.1)
 function desbloquearAudio() {
     if (!audioDesbloqueado) {
-        // En PC esto sobra, pero en Móvil es lo que abre el hardware
         Object.values(sonidos).forEach(s => {
             s.volume = 0.1;
             s.play().then(() => { s.pause(); s.currentTime = 0; s.volume = 1; }).catch(() => {});
         });
-        canalGrito.volume = 1,0;
+        canalGrito.volume = 1.0;
         canalGrito.play().then(() => { canalGrito.pause(); canalGrito.volume = 1.0; }).catch(() => {});
         audioDesbloqueado = true;
     }
@@ -52,12 +50,17 @@ async function activarEscaner() {
     document.getElementById('pokedex-content').style.display = 'none';
     document.getElementById('reader').style.display = 'block';
 
+    // --- RESTAURADO: Animación de carga en LEDs ---
+    document.querySelectorAll('.led').forEach(l => { 
+        l.classList.remove('success'); 
+        l.classList.add('animating'); 
+    });
+
     try {
         if (html5QrCode && html5QrCode.isScanning) { await html5QrCode.stop(); }
         await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
             let code = text.toUpperCase().trim();
             if (pokemonDB[code]) {
-                // CLAVE: El audio se carga mientras la cámara aún brilla
                 canalGrito.src = pokemonDB[code].cry;
                 canalGrito.load();
                 
@@ -75,13 +78,14 @@ function actualizarPantalla() {
     document.getElementById('pokedex-content').style.display = 'flex';
     document.getElementById('main-text').innerHTML = pokemonActualData.text;
     
+    // --- RESTAURADO: Limpiar animación de LEDs al mostrar Pokémon ---
+    document.querySelectorAll('.led').forEach(l => l.classList.remove('animating', 'success'));
+    
     const sprite = document.getElementById('main-sprite');
     sprite.src = pokemonActualData.sprite;
     
-    // Reproducción con re-intento (Crucial para móviles lentos)
     setTimeout(() => {
         canalGrito.play().catch(() => {
-            // Si el móvil estaba ocupado cerrando la cámara, reintenta a los 300ms
             setTimeout(() => canalGrito.play(), 300);
         });
     }, 200);
@@ -130,6 +134,10 @@ function iniciarCaptura(img, prob, msg) {
                 texto.innerHTML = "¡ATRAPADO!";
                 sonidos.captura.play().catch(() => {});
                 sprite.classList.remove('is-pokeball');
+                
+                // --- RESTAURADO: LEDs en verde (success) ---
+                document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
+
                 setTimeout(() => {
                     sprite.classList.add('captured-success');
                 }, 10);
@@ -187,5 +195,6 @@ function abrirCofre() {
 function restaurarInterfaz() {
     document.getElementById('reader').style.display = 'none';
     document.getElementById('pokedex-content').style.display = 'flex';
+    document.querySelectorAll('.led').forEach(l => l.classList.remove('animating', 'success'));
     pokemonDetectado = true;
 }
