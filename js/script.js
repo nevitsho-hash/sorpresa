@@ -46,46 +46,31 @@ audioDesbloqueado = true;
 }
 
 async function activarEscaner() {
-    // 1. Desbloqueo de audio y reseteo visual inmediato [cite: 2026-03-02]
-    desbloquearAudio(); 
-    sonidoBoton.play().catch(() => {}); 
-    
-    // 2. Limpieza total de estados anteriores para evitar bloqueos
-    const sprite = document.getElementById('main-sprite');
-    sprite.onclick = null; 
-    sprite.style.cursor = "default";
-    sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'captured-success');
-    sprite.style.transform = "scale(1)";
-    sprite.style.opacity = "1";
+desbloquearAudio(); // Desbloqueamos el canal al primer toque del botón verde
+sonidoBoton.play().catch(() => {});
 
-    // 3. Cambio de interfaz
-    document.getElementById('pokedex-content').style.display = 'none';
-    document.getElementById('reader').style.display = 'block';
-    
-    document.querySelectorAll('.led').forEach(l => {
-        l.classList.remove('success');
-        l.classList.add('animating');
-    });
+```
+document.getElementById('pokedex-content').style.display = 'none';
+document.getElementById('reader').style.display = 'block';
 
-    try {
-        // Aseguramos que si ya había un escáner, se detenga antes de empezar
-        if(html5QrCode.isScanning) {
-            await html5QrCode.stop();
+document.querySelectorAll('.led').forEach(l => {
+    l.classList.remove('success');
+    l.classList.add('animating');
+});
+
+try {
+    await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
+        let code = text.toUpperCase().trim();
+        if (pokemonDB[code]) {
+            html5QrCode.stop().then(() => {
+                pokemonActualData = pokemonDB[code];
+                actualizarPantalla();
+            });
         }
+    });
+} catch (err) { restaurarInterfaz(); }
+```
 
-        await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
-            let code = text.toUpperCase().trim();
-            if (pokemonDB[code]) {
-                html5QrCode.stop().then(() => {
-                    pokemonActualData = pokemonDB[code];
-                    actualizarPantalla();
-                });
-            }
-        });
-    } catch (err) { 
-        console.error("Error cámara:", err);
-        restaurarInterfaz(); 
-    }
 }
 
 function actualizarPantalla() {
@@ -131,76 +116,65 @@ iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites
 }
 
 function iniciarCaptura(img, prob, msg) {
-    const sprite = document.getElementById('main-sprite');
-    const texto = document.getElementById('main-text');
-    const pokemonSpriteURL = pokemonActualData.sprite; 
-    const pokemonNombre = pokemonActualData.text;
+const sprite = document.getElementById('main-sprite');
+const texto = document.getElementById('main-text');
+const pokemonNombre = pokemonActualData.text;
 
-    // FASE 0: EFECTO DE ZOOM HACIA ADENTRO (El Pokémon entra en la bola)
-    sprite.style.transform = "scale(0)";
-    sprite.style.opacity = "0";
-    texto.innerHTML = "¡ALLÁ VA!";
+```
+sprite.src = img;
+sprite.classList.add('is-pokeball', 'shaking-hard');
+texto.innerHTML = msg;
 
-    setTimeout(() => {
-        // FASE 1: APARECE LA POKÉ BALL
-        sprite.src = img;
-        sprite.style.transform = "scale(0.65)"; // Tamaño de la bola
-        sprite.style.opacity = "1";
-        sprite.classList.add('is-pokeball', 'shaking-hard');
-        texto.innerHTML = msg;
+// Fase de movimiento de la bola
+setTimeout(() => {
+    sprite.classList.remove('shaking-hard');
+    sprite.classList.add('shaking-slow');
+}, 1500);
 
-        // FASE 2: LA BOLA SE CALMA (SUSPENSE)
-        setTimeout(() => {
-            sprite.classList.remove('shaking-hard');
-            sprite.classList.add('shaking-slow');
-        }, 1500);
+// Momento de la verdad
+setTimeout(() => {
+    sprite.classList.remove('shaking-slow');
+    if (Math.random() < prob) {
+        // ÉXITO: La bola se queda quieta celebrando
+        texto.innerHTML = "¡ATRAPADO!";
+        sonidoCaptura.currentTime = 0;
+        sonidoCaptura.play().catch(() => {});
+        sprite.classList.add('captured-success');
+        document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
+        pokemonDetectado = false;
 
-        // FASE 3: MOMENTO DE LA VERDAD
-        setTimeout(() => {
-            sprite.classList.remove('shaking-slow');
-            if (Math.random() < prob) {
-                // ÉXITO: CELEBRACIÓN
-                texto.innerHTML = "¡ATRAPADO!";
-                sonidoCaptura.currentTime = 0;
-                sonidoCaptura.play().catch(() => {}); 
-                sprite.classList.add('captured-success');
-                document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
-                pokemonDetectado = false;
+        // SECUENCIA DEL COFRE (Solo para Gengar) [2026-03-02]
+        if (pokemonNombre.includes("GENGAR")) {
+            // Aumentamos el tiempo de espera a 4 segundos (4000ms)
+            // para que se vea bien la Poké Ball antes de cambiar
+            setTimeout(() => {
+                sprite.classList.remove('is-pokeball', 'captured-success');
+                sprite.style.opacity = "0"; // Desvanecimiento suave
 
-                // SECUENCIA DEL COFRE (Solo para Gengar con pausa de 4s)
-                if (pokemonNombre.includes("GENGAR")) {
-                    setTimeout(() => {
-                        sprite.classList.remove('is-pokeball', 'captured-success');
-                        sprite.style.opacity = "0";
-                        
-                        setTimeout(() => {
-                            sprite.src = "assets/img/gengar-cofre.png";
-                            sprite.classList.add('clickable-chest');
-                            sprite.style.opacity = "1";
-                            sprite.style.transform = "scale(1.2)";
-                            texto.innerHTML = "GENGAR TIENE<br>ALGO PARA TI...";
-                            sprite.onclick = abrirCofre;
-                        }, 500);
-                    }, 4000); 
-                }
-            } else {
-                // FALLO: EL POKÉMON "SALE" DE LA BOLA
-                texto.innerHTML = "¡SE ESCAPÓ!";
-                sprite.style.transform = "scale(0.35)";
                 setTimeout(() => {
-                    sprite.classList.remove('is-pokeball');
-                    sprite.src = pokemonSpriteURL;
-                    sprite.style.transform = "scale(1.2)"; // Efecto de explosión al salir
+                    sprite.src = "assets/img/gengar-cofre.png";
+                    sprite.classList.add('clickable-chest');
                     sprite.style.opacity = "1";
-                    
-                    setTimeout(() => {
-                        sprite.style.transform = "scale(1)"; 
-                        texto.innerHTML = pokemonNombre; 
-                    }, 200);
-                }, 600);
-            }
-        }, 3500);
-    }, 400); // Pequeña pausa para que se vea el zoom del Pokémon
+                    sprite.style.transform = "scale(1.2)";
+                    texto.innerHTML = "GENGAR TIENE<br>ALGO PARA TI...";
+                    sprite.onclick = abrirCofre;
+                }, 500);
+            }, 4000);
+        }
+    } else {
+        // FALLO (Se mantiene igual)
+        texto.innerHTML = "¡SE ESCAPÓ!";
+        sprite.style.transform = "scale(0.35)";
+        setTimeout(() => {
+            sprite.classList.remove('is-pokeball');
+            sprite.src = pokemonActualData.sprite;
+            sprite.style.transform = "scale(1)";
+            setTimeout(() => { texto.innerHTML = pokemonNombre; }, 800);
+        }, 600);
+    }
+}, 3500);
+```
+
 }
 
 function abrirCofre() {
