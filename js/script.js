@@ -1,6 +1,10 @@
-// Definición de audios [cite: 2026-03-01]
+// Definición de audios y precarga [cite: 2026-03-02]
 const sonidoBoton = new Audio('assets/sng/clic.mp3');
 const sonidoCaptura = new Audio('assets/sng/captura.wav'); 
+const sonidoEspera = new Audio('assets/sng/espera-pokeball.mp3'); // Nuevo sonido de lanzamiento
+
+sonidoCaptura.load();
+sonidoEspera.load();
 
 let html5QrCode;
 let pokemonDetectado = true;
@@ -27,9 +31,9 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
-// SOLO EL BOTÓN VERDE ACTIVA EL CLIC [cite: 2026-03-02]
 async function activarEscaner() {
-    sonidoBoton.play().catch(() => {}); // Único lugar donde suena el clic
+    // El botón verde sigue usando exclusivamente el sonido de clic
+    sonidoBoton.play().catch(e => console.log("Clic bloqueado")); 
     document.getElementById('pokedex-content').style.display = 'none';
     document.getElementById('reader').style.display = 'block';
     document.querySelectorAll('.led').forEach(l => {
@@ -60,7 +64,8 @@ function actualizarPantalla() {
     sprite.style.opacity = "1";
     sprite.style.transform = "scale(1)";
     sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'captured-success');
-    new Audio(pokemonActualData.cry).play().catch(() => {});
+    
+    new Audio(pokemonActualData.cry).play().catch(e => console.log("Grito bloqueado"));
     pokemonDetectado = true;
 }
 
@@ -69,14 +74,17 @@ function restaurarInterfaz() {
     document.getElementById('pokedex-content').style.display = 'flex';
 }
 
-// ELIMINADO EL SONIDO DE CLIC DE ESTAS FUNCIONES [cite: 2026-03-02]
 function capturarNormal() {
     if (!pokemonDetectado) return;
+    // Activamos el sonido de espera al lanzar [cite: 2026-03-02]
+    sonidoEspera.play().catch(e => console.log("Audio espera bloqueado"));
     iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png', pokemonActualData.catchRate, "¡POKÉ BALL!");
 }
 
 function capturarSuper() {
     if (!pokemonDetectado) return;
+    // Activamos el sonido de espera al lanzar [cite: 2026-03-02]
+    sonidoEspera.play().catch(e => console.log("Audio espera bloqueado"));
     iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png', (pokemonActualData.catchRate * 2), "¡SUPER BALL!");
 }
 
@@ -98,14 +106,16 @@ function iniciarCaptura(img, prob, msg) {
     setTimeout(() => {
         sprite.classList.remove('shaking-slow');
         if (Math.random() < prob) {
-            // ÉXITO: AQUÍ SUENA EL SONIDO DE CAPTURA [cite: 2026-03-02]
+            // ÉXITO: Sonido de captura corregido (.wav)
             texto.innerHTML = "¡ATRAPADO!";
-            sonidoCaptura.play().catch(() => {}); 
+            sonidoCaptura.currentTime = 0;
+            sonidoCaptura.play().catch(e => console.error("Error sonido captura:", e)); 
+            
             sprite.classList.add('captured-success');
             document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
             pokemonDetectado = false;
         } else {
-            // FALLO: PERSISTENCIA
+            // FALLO: Persistencia
             texto.innerHTML = "¡SE ESCAPÓ!";
             sprite.style.transform = "scale(0.35)";
             setTimeout(() => {
