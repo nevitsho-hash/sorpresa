@@ -1,4 +1,16 @@
-// ... (Sonidos y variables iniciales iguales)
+// 1. GESTIÓN CENTRALIZADA DE AUDIOS
+const sonidos = {
+    boton: new Audio('assets/sng/clic.mp3'),
+    captura: new Audio('assets/sng/captura.wav'),
+    espera: new Audio('assets/sng/espera-pokeball.mp3'),
+    escapo: new Audio('assets/sng/escapo.mp3'),
+    brillo: new Audio('assets/sng/brillocofre.mp3')
+};
+
+const canalGrito = new Audio();
+let html5QrCode;
+let pokemonDetectado = true;
+let audioDesbloqueado = false;
 
 const pokemonDB = {
     "BEAUTIFLY": { text: "¡BEAUTIFLY!", sprite: "assets/img/BEAUTIFLY.png", catchRate: 0.5, cry: "assets/sng/beautifly.mp3" },
