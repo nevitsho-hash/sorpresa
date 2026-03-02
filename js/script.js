@@ -8,7 +8,7 @@ const sonidos = {
 };
 
 const canalGrito = new Audio();
-let html5QrCode = null; // Variable única global
+let html5QrCode = null; // Instancia única
 let pokemonDetectado = true;
 let audioDesbloqueado = false;
 let pokemonActualData = null;
@@ -24,7 +24,7 @@ const pokemonDB = {
 };
 
 window.addEventListener('DOMContentLoaded', () => {
-    // Inicialización movida dentro de activarEscaner para mayor limpieza
+    // La inicialización se hace dinámicamente en activarEscaner para evitar bloqueos
 });
 
 function desbloquearAudio() {
@@ -46,7 +46,7 @@ async function activarEscaner() {
     const pokedexContent = document.getElementById('pokedex-content');
     const sprite = document.getElementById('main-sprite');
     
-    // 1. LIMPIEZA ABSOLUTA: Destruimos cualquier rastro antes de empezar
+    // 1. LIMPIEZA RADICAL: Eliminamos cualquier rastro previo de la cámara
     if (html5QrCode) {
         try {
             await html5QrCode.stop();
@@ -57,26 +57,37 @@ async function activarEscaner() {
         html5QrCode = null;
     }
 
-    // 2. RESET VISUAL
+    // 2. RESET VISUAL: Ocultamos el contenido para que no se vea nada detrás de la cámara
     pokemonDetectado = true;
     sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'anillo-animado', 'captured-success');
     sprite.style.opacity = "1";
     sprite.style.transform = "scale(1)";
     sprite.onclick = null;
 
-    // 3. GESTIÓN DE CAPAS: Preparamos el escenario
-    pokedexContent.style.display = 'none';
-    readerDiv.style.display = 'block';
-    readerDiv.style.zIndex = "1000"; 
+    pokedexContent.style.visibility = 'hidden'; 
+    pokedexContent.style.opacity = '0';
 
-    // 4. RETRASO DE SEGURIDAD: Dejamos que el navegador renderice el div negro
+    // 3. PREPARAR EL CONTENEDOR DE CÁMARA
+    readerDiv.style.display = 'block';
+    readerDiv.style.position = 'absolute';
+    readerDiv.style.top = '0';
+    readerDiv.style.left = '0';
+    readerDiv.style.width = '100%';
+    readerDiv.style.height = '100%';
+    readerDiv.style.zIndex = "9999"; // Prioridad absoluta sobre el Gengar o fondo
+    readerDiv.style.backgroundColor = "black";
+
+    // 4. INICIO CON RETRASO (Para que el navegador procese los cambios de CSS)
     setTimeout(async () => {
         try {
             html5QrCode = new Html5Qrcode("reader");
-
             await html5QrCode.start(
                 { facingMode: "environment" }, 
-                { fps: 20, qrbox: { width: 250, height: 250 } }, 
+                { 
+                    fps: 25, 
+                    qrbox: { width: 220, height: 220 },
+                    aspectRatio: 1.0 
+                }, 
                 (text) => {
                     let code = text.toUpperCase().trim();
                     if (pokemonDB[code]) {
@@ -85,7 +96,13 @@ async function activarEscaner() {
                         
                         html5QrCode.stop().then(() => {
                             html5QrCode.clear();
+                            // Restauramos visibilidad
+                            pokedexContent.style.visibility = 'visible';
+                            pokedexContent.style.opacity = '1';
+                            pokedexContent.style.display = 'flex';
+                            readerDiv.style.display = 'none';
                             readerDiv.style.zIndex = "1";
+                            
                             pokemonActualData = pokemonDB[code];
                             actualizarPantalla();
                         });
@@ -93,22 +110,23 @@ async function activarEscaner() {
                 }
             );
 
-            // Activamos LEDs solo si la cámara arrancó bien
             document.querySelectorAll('.led').forEach(l => { 
                 l.classList.remove('success'); 
                 l.classList.add('animating'); 
             });
 
         } catch (err) { 
-            console.error("Error crítico de cámara:", err);
+            console.error("Cámara bloqueada:", err);
             restaurarInterfaz(); 
         }
-    }, 150); // El pequeño respiro para el navegador
+    }, 200);
 }
 
 function actualizarPantalla() {
     document.getElementById('reader').style.display = 'none';
     document.getElementById('pokedex-content').style.display = 'flex';
+    document.getElementById('pokedex-content').style.visibility = 'visible';
+    document.getElementById('pokedex-content').style.opacity = '1';
     document.getElementById('main-text').innerHTML = pokemonActualData.text;
     document.querySelectorAll('.led').forEach(l => l.classList.remove('animating', 'success'));
     
@@ -123,13 +141,27 @@ function actualizarPantalla() {
     pokemonDetectado = true;
 }
 
-// ... (Resto de funciones: capturarNormal, capturarSuper, iniciarCaptura, abrirCofre se mantienen igual)
-
-function restaurarInterfaz() {
-    const readerDiv = document.getElementById('reader');
-    readerDiv.style.display = 'none'; 
-    readerDiv.style.zIndex = "1"; 
-    document.getElementById('pokedex-content').style.display = 'flex'; 
-    document.querySelectorAll('.led').forEach(l => l.classList.remove('animating', 'success'));
-    pokemonDetectado = true;
+function capturarNormal() {
+    if (!pokemonDetectado || !pokemonActualData) return;
+    sonidos.espera.play().catch(() => {});
+    iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png', pokemonActualData.catchRate, "¡POKÉ BALL!");
 }
+
+function capturarSuper() {
+    if (!pokemonDetectado || !pokemonActualData) return;
+    sonidos.espera.play().catch(() => {});
+    
+    let probFinal = pokemonActualData.catchRate * 2;
+    if (pokemonActualData.text.includes("GENGAR")) {
+        probFinal = 0.7; 
+    }
+    
+    iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png', probFinal, "¡SUPER BALL!");
+}
+
+function iniciarCaptura(img, prob, msg) {
+    const sprite = document.getElementById('main-sprite');
+    const texto = document.getElementById('main-text');
+    const esGengar = pokemonActualData.text.includes("GENGAR");
+
+    pokemonDetectado = false;
