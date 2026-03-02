@@ -7,6 +7,8 @@ const pokemonDB = {
     "TOTODILE": { text: "¡TOTODILE!", sprite: "assets/img/TOTODILE.png", catchRate: 0.5, cry: "assets/sng/totodile.mp3" },
     "UMBREON": { text: "¡UMBREON!", sprite: "assets/img/UMBREON.png", catchRate: 0.5, cry: "assets/sng/umbreon.mp3" },
     "JIGGLYPUFF": { text: "¡JIGGLYPUFF!", sprite: "assets/img/JIGGLYPUFF.png", catchRate: 0.5, cry: "assets/sng/jigglypuff.mp3" },
+    
+    // GENGAR: Base de 0.2 (20% con Poké Ball normal)
     "GENGAR": { text: "¡GENGAR!", sprite: "assets/img/GENGAR.png", catchRate: 0.2, cry: "assets/sng/gengar.mp3" }
 };
 
@@ -31,6 +33,8 @@ function capturarSuper() {
     
     iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png', ratioSuper, "¡SUPER BALL!");
 }
+
+// ... (Resto del código igual a la Base 28.0)
 
 function iniciarCaptura(img, prob, msg) {
     const sprite = document.getElementById('main-sprite');
