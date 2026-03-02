@@ -110,7 +110,7 @@ function iniciarCaptura(img, prob, msg) {
                 setTimeout(() => {
                     sprite.style.transform = "scale(1.2)";
                     sprite.src = "assets/img/gengar-cofre.png"; 
-                    texto.innerHTML = "¿QUÉ TIENE GENGAR?<br>¡MIRA ADENTRO!"; 
+                    texto.innerHTML = "GENGAR TIENE ALGO PARA TI"; 
                 }, 2500);
             }
         } else {
