@@ -46,15 +46,17 @@ function desbloquearAudio() {
         audioDesbloqueado = true;
     }
 }
+// ... (Mantenemos sonidos, canalGrito y pokemonDB igual que en la versión estable)
 
 async function activarEscaner() {
-    // ESTA ES LA INTERACCIÓN DEL USUARIO: Desbloqueamos todo aquí
     desbloquearAudio();
     sonidos.boton.play().catch(() => {});
     
+    // RESET TOTAL DE SEGURIDAD PARA BOTONES
+    pokemonDetectado = true; 
     const sprite = document.getElementById('main-sprite');
     sprite.onclick = null;
-    sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'captured-success');
+    sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'anillo-animado', 'captured-success');
     sprite.style.opacity = "1";
     sprite.style.transform = "scale(1)";
 
@@ -84,26 +86,14 @@ function actualizarPantalla() {
     
     const sprite = document.getElementById('main-sprite');
     sprite.src = pokemonActualData.sprite;
+    sprite.style.opacity = "1";
+    sprite.style.transform = "scale(1)";
+    sprite.onclick = null;
     
-    // REPRODUCCIÓN DEL GRITO
-    // Ya tenemos el canal autorizado, ahora le damos la fuente y suena
     canalGrito.src = pokemonActualData.cry;
-    canalGrito.load(); // Forzamos la carga de la nueva fuente
-    canalGrito.play().catch(e => console.log("Error al reproducir grito:", e));
+    canalGrito.play().catch(() => {});
     
-    pokemonDetectado = true;
-}
-
-function capturarNormal() { 
-    if (!pokemonDetectado) return;
-    sonidos.espera.play().catch(() => {});
-    iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png', pokemonActualData.catchRate, "¡POKÉ BALL!");
-}
-
-function capturarSuper() { 
-    if (!pokemonDetectado) return;
-    sonidos.espera.play().catch(() => {});
-    iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png', (pokemonActualData.catchRate * 2), "¡SUPER BALL!");
+    pokemonDetectado = true; // ASEGURAMOS QUE LOS BOTONES FUNCIONEN AL APARECER EL POKÉMON
 }
 
 function iniciarCaptura(img, prob, msg) {
@@ -111,9 +101,8 @@ function iniciarCaptura(img, prob, msg) {
     const texto = document.getElementById('main-text');
     const esGengar = pokemonActualData.text.includes("GENGAR");
 
-    pokemonDetectado = false;
+    pokemonDetectado = false; // Bloqueo temporal durante la animación
 
-    // EFECTO ZOOM (SUCCIÓN)
     sprite.style.transition = "transform 0.4s ease, opacity 0.4s ease";
     sprite.style.transform = "scale(0)";
     sprite.style.opacity = "0";
@@ -140,16 +129,15 @@ function iniciarCaptura(img, prob, msg) {
                 document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
 
                 if (esGengar) {
+                    // SECUENCIA GENGAR (Botones siguen bloqueados hasta el final)
                     setTimeout(() => {
                         sprite.style.transition = "opacity 0.8s ease";
                         sprite.style.opacity = "0";
-
                         setTimeout(() => {
-                            sprite.classList.remove('is-pokeball', 'captured-success', 'shaking-hard', 'shaking-slow');
+                            sprite.classList.remove('is-pokeball', 'captured-success');
                             sprite.src = "assets/img/gengar-cofre.png";
                             sonidos.brillo.currentTime = 0;
                             sonidos.brillo.play().catch(() => {});
-                            
                             sprite.style.opacity = "1";
                             sprite.style.transform = "scale(1.2)";
                             sprite.classList.add('clickable-chest');
@@ -158,9 +146,11 @@ function iniciarCaptura(img, prob, msg) {
                         }, 800);
                     }, 4000);
                 } else {
-                    setTimeout(() => { pokemonDetectado = true; }, 1200);
+                    // SI ES POKÉMON NORMAL: LIBERAMOS BOTONES TRAS LA CELEBRACIÓN
+                    setTimeout(() => { pokemonDetectado = true; }, 1000);
                 }
             } else {
+                // FALLO: LIBERAMOS BOTONES PARA REINTENTAR
                 texto.innerHTML = "¡SE ESCAPÓ!";
                 sonidos.escapo.currentTime = 0;
                 sonidos.escapo.play().catch(() => {});
@@ -174,7 +164,7 @@ function iniciarCaptura(img, prob, msg) {
                     setTimeout(() => { 
                         sprite.style.transform = "scale(1)";
                         texto.innerHTML = pokemonActualData.text; 
-                        pokemonDetectado = true; 
+                        pokemonDetectado = true; // LIBERACIÓN
                     }, 200);
                 }, 600);
             }
