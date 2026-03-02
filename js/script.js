@@ -114,30 +114,44 @@ function iniciarCaptura(img, prob, msg) {
     sprite.classList.add('is-pokeball', 'shaking-hard');
     texto.innerHTML = msg;
 
+    // Fase de movimiento de la bola
     setTimeout(() => {
         sprite.classList.remove('shaking-hard');
         sprite.classList.add('shaking-slow');
     }, 1500);
 
+    // Momento de la verdad
     setTimeout(() => {
         sprite.classList.remove('shaking-slow');
         if (Math.random() < prob) {
+            // ÉXITO: La bola se queda quieta celebrando
             texto.innerHTML = "¡ATRAPADO!";
             sonidoCaptura.currentTime = 0;
             sonidoCaptura.play().catch(() => {}); 
+            sprite.classList.add('captured-success');
             document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
             pokemonDetectado = false;
 
+            // SECUENCIA DEL COFRE (Solo para Gengar) [2026-03-02]
             if (pokemonNombre.includes("GENGAR")) {
+                // Aumentamos el tiempo de espera a 4 segundos (4000ms) 
+                // para que se vea bien la Poké Ball antes de cambiar
                 setTimeout(() => {
-                    // 2. RUTA RELATIVA CORREGIDA
-                    sprite.src = "assets/img/gengar-cofre.png"; 
-                    sprite.classList.add('clickable-chest');
-                    texto.innerHTML = "GENGAR TIENE<br>ALGO PARA TI...";
-                    sprite.onclick = abrirCofre;
-                }, 2500);
+                    sprite.classList.remove('is-pokeball', 'captured-success');
+                    sprite.style.opacity = "0"; // Desvanecimiento suave
+                    
+                    setTimeout(() => {
+                        sprite.src = "assets/img/gengar-cofre.png";
+                        sprite.classList.add('clickable-chest');
+                        sprite.style.opacity = "1";
+                        sprite.style.transform = "scale(1.2)";
+                        texto.innerHTML = "GENGAR TIENE<br>ALGO PARA TI...";
+                        sprite.onclick = abrirCofre;
+                    }, 500);
+                }, 4000); 
             }
         } else {
+            // FALLO (Se mantiene igual)
             texto.innerHTML = "¡SE ESCAPÓ!";
             sprite.style.transform = "scale(0.35)";
             setTimeout(() => {
