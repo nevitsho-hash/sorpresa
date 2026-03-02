@@ -1,9 +1,14 @@
-// Audios y Precarga Maestro [2026-03-02]
-const sonidoBoton = new Audio('assets/sng/clic.mp3');
-const sonidoCaptura = new Audio('assets/sng/captura.wav'); 
-const sonidoEspera = new Audio('assets/sng/espera-pokeball.mp3'); 
-const sonidoEscapo = new Audio('assets/sng/escapo.mp3'); 
-const sonidoBrilloCofre = new Audio('assets/sng/brillocofre.mp3'); // Integrado [cite: 2026-03-02]
+// 1. GESTIÓN CENTRALIZADA DE AUDIOS (Blindaje contra bloqueos)
+const sonidos = {
+    boton: new Audio('assets/sng/clic.mp3'),
+    captura: new Audio('assets/sng/captura.wav'),
+    espera: new Audio('assets/sng/espera-pokeball.mp3'),
+    escapo: new Audio('assets/sng/escapo.mp3'),
+    brillo: new Audio('assets/sng/brillocofre.mp3')
+};
+
+// Objeto para los gritos (se cargan dinámicamente pero se reutiliza el objeto)
+const canalGrito = new Audio();
 
 let html5QrCode;
 let pokemonDetectado = true;
@@ -30,11 +35,12 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
+// 2. DESBLOQUEO DE CANALES (Solo una vez por sesión)
 function desbloquearAudio() {
     if (!audioDesbloqueado) {
-        [sonidoBoton, sonidoCaptura, sonidoEspera, sonidoEscapo, sonidoBrilloCofre].forEach(a => {
-            a.muted = true;
-            a.play().then(() => { a.pause(); a.currentTime = 0; a.muted = false; }).catch(() => {});
+        Object.values(sonidos).forEach(s => {
+            s.muted = true;
+            s.play().then(() => { s.pause(); s.currentTime = 0; s.muted = false; }).catch(() => {});
         });
         audioDesbloqueado = true;
     }
@@ -42,7 +48,9 @@ function desbloquearAudio() {
 
 async function activarEscaner() {
     desbloquearAudio();
-    sonidoBoton.play().catch(() => {});
+    sonidos.boton.play().catch(() => {});
+    
+    // Limpieza de UI
     const sprite = document.getElementById('main-sprite');
     sprite.onclick = null;
     sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'captured-success');
@@ -54,11 +62,16 @@ async function activarEscaner() {
     document.querySelectorAll('.led').forEach(l => { l.classList.remove('success'); l.classList.add('animating'); });
 
     try {
-        if (html5QrCode.isScanning) await html5QrCode.stop();
+        if (html5QrCode && html5QrCode.isScanning) {
+            await html5QrCode.stop();
+        }
         await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
             let code = text.toUpperCase().trim();
             if (pokemonDB[code]) {
-                html5QrCode.stop().then(() => { pokemonActualData = pokemonDB[code]; actualizarPantalla(); });
+                html5QrCode.stop().then(() => {
+                    pokemonActualData = pokemonDB[code];
+                    actualizarPantalla();
+                });
             }
         });
     } catch (err) { restaurarInterfaz(); }
@@ -69,19 +82,32 @@ function actualizarPantalla() {
     document.getElementById('pokedex-content').style.display = 'flex';
     document.getElementById('main-text').innerHTML = pokemonActualData.text;
     document.querySelectorAll('.led').forEach(l => l.classList.remove('animating', 'success'));
+    
     const sprite = document.getElementById('main-sprite');
     sprite.src = pokemonActualData.sprite;
-    sprite.style.opacity = "1";
-    sprite.style.transform = "scale(1)";
     sprite.onclick = null;
     sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'captured-success');
-    new Audio(pokemonActualData.cry).play().catch(() => {});
+    
+    // Grito sincronizado
+    canalGrito.src = pokemonActualData.cry;
+    canalGrito.play().catch(() => {});
+    
     pokemonDetectado = true;
 }
 
-function capturarNormal() { if (pokemonDetectado) { sonidoEspera.play().catch(() => {}); iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png', pokemonActualData.catchRate, "¡POKÉ BALL!"); } }
+function capturarNormal() { 
+    if (!pokemonDetectado) return;
+    sonidos.espera.play().catch(() => {});
+    iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png', pokemonActualData.catchRate, "¡POKÉ BALL!");
+}
 
-function capturarSuper() { if (pokemonDetectado) { sonidoEspera.play().catch(() => {}); iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png', (pokemonActualData.catchRate * 2), "¡SUPER BALL!"); } }
+function capturarSuper() { 
+    if (!pokemonDetectado) return;
+    sonidos.espera.play().catch(() => {});
+    iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png', (pokemonActualData.catchRate * 2), "¡SUPER BALL!");
+}
+
+// ... (Mantenemos el objeto sonidos y pokemonDB igual que en la versión 14.0)
 
 function iniciarCaptura(img, prob, msg) {
     const sprite = document.getElementById('main-sprite');
@@ -156,4 +182,22 @@ function iniciarCaptura(img, prob, msg) {
     }, 3500);
 }
 
-function restaurarInterfaz() { document.getElementById('reader').style.display = 'none'; document.getElementById('pokedex-content').style.display = 'flex'; }
+function abrirCofre() {
+    const sprite = document.getElementById('main-sprite');
+    const texto = document.getElementById('main-text');
+    sprite.onclick = null;
+    sprite.classList.remove('clickable-chest');
+    sprite.style.opacity = "0";
+    setTimeout(() => {
+        sprite.src = "assets/img/anillo.png";
+        sprite.classList.add('ring-reveal');
+        sprite.style.opacity = "1";
+        texto.innerHTML = "¿QUIERES SER<br>MI PAREJA?";
+    }, 500);
+}
+
+function restaurarInterfaz() { 
+    document.getElementById('reader').style.display = 'none'; 
+    document.getElementById('pokedex-content').style.display = 'flex'; 
+    pokemonDetectado = true;
+}
