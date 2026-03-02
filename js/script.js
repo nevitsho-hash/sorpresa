@@ -40,16 +40,22 @@ function desbloquearAudio() {
 }
 
 async function activarEscaner() {
-    desbloquearAudio();
+    desbloquearAudio(); 
+    
+    // RESET VISUAL Y DE LÓGICA
     pokemonDetectado = true;
     const sprite = document.getElementById('main-sprite');
     sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'anillo-animado', 'captured-success');
     sprite.style.opacity = "1";
     sprite.style.transform = "scale(1)";
-    sprite.onclick = null;
 
-    document.getElementById('pokedex-content').style.display = 'none';
-    document.getElementById('reader').style.display = 'block';
+    // GESTIÓN DE CAPAS CRÍTICA
+    const readerDiv = document.getElementById('reader');
+    const pokedexContent = document.getElementById('pokedex-content');
+    
+    pokedexContent.style.display = 'none';
+    readerDiv.style.display = 'block';
+    readerDiv.style.zIndex = "999"; // Lo traemos al frente absoluto
 
     document.querySelectorAll('.led').forEach(l => { 
         l.classList.remove('success'); 
@@ -57,38 +63,46 @@ async function activarEscaner() {
     });
 
     try {
-        if (html5QrCode && html5QrCode.isScanning) { await html5QrCode.stop(); }
-        await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
-            let code = text.toUpperCase().trim();
-            if (pokemonDB[code]) {
-                canalGrito.src = pokemonDB[code].cry;
-                canalGrito.load();
-                html5QrCode.stop().then(() => {
-                    pokemonActualData = pokemonDB[code];
-                    actualizarPantalla();
-                });
+        // Si ya existe una instancia, la limpiamos por completo
+        if (html5QrCode) {
+            try { await html5QrCode.stop(); } catch(e) {}
+            html5QrCode.clear(); 
+        }
+        
+        // Reiniciamos el objeto para asegurar frescura
+        html5QrCode = new Html5Qrcode("reader");
+
+        await html5QrCode.start(
+            { facingMode: "environment" }, 
+            { fps: 20, qrbox: 250 }, 
+            (text) => {
+                let code = text.toUpperCase().trim();
+                if (pokemonDB[code]) {
+                    canalGrito.src = pokemonDB[code].cry;
+                    canalGrito.load();
+                    
+                    html5QrCode.stop().then(() => {
+                        readerDiv.style.zIndex = "1"; // Lo mandamos al fondo tras éxito
+                        pokemonActualData = pokemonDB[code];
+                        actualizarPantalla();
+                    });
+                }
             }
-        });
-    } catch (err) { restaurarInterfaz(); }
+        );
+    } catch (err) { 
+        console.error("Error de cámara:", err);
+        restaurarInterfaz(); 
+    }
 }
 
-function actualizarPantalla() {
-    document.getElementById('reader').style.display = 'none';
-    document.getElementById('pokedex-content').style.display = 'flex';
-    document.getElementById('main-text').innerHTML = pokemonActualData.text;
+function restaurarInterfaz() {
+    const readerDiv = document.getElementById('reader');
+    readerDiv.style.display = 'none'; 
+    readerDiv.style.zIndex = "1"; // Reset de capa
+    document.getElementById('pokedex-content').style.display = 'flex'; 
     document.querySelectorAll('.led').forEach(l => l.classList.remove('animating', 'success'));
-    
-    const sprite = document.getElementById('main-sprite');
-    sprite.src = pokemonActualData.sprite;
-    
-    setTimeout(() => {
-        canalGrito.play().catch(() => {
-            setTimeout(() => canalGrito.play(), 300);
-        });
-    }, 200);
     pokemonDetectado = true;
 }
-
 function capturarNormal() {
     if (!pokemonDetectado || !pokemonActualData) return;
     sonidos.espera.play().catch(() => {});
