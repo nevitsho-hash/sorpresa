@@ -3,13 +3,13 @@ const sonidoBoton = new Audio('assets/sng/clic.mp3');
 const sonidoCaptura = new Audio('assets/sng/captura.wav'); 
 const sonidoEspera = new Audio('assets/sng/espera-pokeball.mp3'); 
 
-// Precarga de imágenes críticas
+// Precarga de imágenes
 const preAnillo = new Image(); preAnillo.src = "assets/img/anillo.png"; 
 const preCofre = new Image(); preCofre.src = "assets/img/gengar-cofre.png";
 
 let html5QrCode;
 let pokemonDetectado = true;
-let audioDesbloqueado = false; // Control de seguridad para el primer toque
+let audioDesbloqueado = false;
 
 let pokemonActualData = { 
     text: "GENGAR", 
@@ -32,14 +32,15 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
-// FUNCIÓN PARA DESBLOQUEAR EL AUDIO EN EL PRIMER CLIC
+// CORRECCIÓN: Desbloqueo silencioso para que no suene la captura al inicio
 function desbloquearAudio() {
     if (!audioDesbloqueado) {
-        // Reproducimos y pausamos instantáneamente todos los audios
         [sonidoBoton, sonidoCaptura, sonidoEspera].forEach(audio => {
+            audio.muted = true; // Silenciamos para el desbloqueo
             audio.play().then(() => {
                 audio.pause();
                 audio.currentTime = 0;
+                audio.muted = false; // Devolvemos el sonido para cuando se use de verdad
             }).catch(() => {});
         });
         audioDesbloqueado = true;
@@ -47,7 +48,9 @@ function desbloquearAudio() {
 }
 
 async function activarEscaner() {
-    desbloquearAudio(); // Desbloqueamos el canal al primer toque del botón verde
+    desbloquearAudio(); 
+    
+    // Ahora solo sonará el clic
     sonidoBoton.play().catch(() => {}); 
     
     document.getElementById('pokedex-content').style.display = 'none';
@@ -84,13 +87,17 @@ function actualizarPantalla() {
     sprite.onclick = null; 
     sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal');
     
-    // Reproducción del grito con un pequeño delay para asegurar el enfoque
     setTimeout(() => {
         const grito = new Audio(pokemonActualData.cry);
         grito.play().catch(e => console.log("Audio bloqueado:", e));
     }, 100);
     
     pokemonDetectado = true;
+}
+
+function restaurarInterfaz() {
+    document.getElementById('reader').style.display = 'none';
+    document.getElementById('pokedex-content').style.display = 'flex';
 }
 
 function capturarNormal() {
@@ -114,17 +121,14 @@ function iniciarCaptura(img, prob, msg) {
     sprite.classList.add('is-pokeball', 'shaking-hard');
     texto.innerHTML = msg;
 
-    // Fase de movimiento de la bola
     setTimeout(() => {
         sprite.classList.remove('shaking-hard');
         sprite.classList.add('shaking-slow');
     }, 1500);
 
-    // Momento de la verdad
     setTimeout(() => {
         sprite.classList.remove('shaking-slow');
         if (Math.random() < prob) {
-            // ÉXITO: La bola se queda quieta celebrando
             texto.innerHTML = "¡ATRAPADO!";
             sonidoCaptura.currentTime = 0;
             sonidoCaptura.play().catch(() => {}); 
@@ -132,13 +136,10 @@ function iniciarCaptura(img, prob, msg) {
             document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
             pokemonDetectado = false;
 
-            // SECUENCIA DEL COFRE (Solo para Gengar) [2026-03-02]
             if (pokemonNombre.includes("GENGAR")) {
-                // Aumentamos el tiempo de espera a 4 segundos (4000ms) 
-                // para que se vea bien la Poké Ball antes de cambiar
                 setTimeout(() => {
                     sprite.classList.remove('is-pokeball', 'captured-success');
-                    sprite.style.opacity = "0"; // Desvanecimiento suave
+                    sprite.style.opacity = "0"; 
                     
                     setTimeout(() => {
                         sprite.src = "assets/img/gengar-cofre.png";
@@ -151,7 +152,6 @@ function iniciarCaptura(img, prob, msg) {
                 }, 4000); 
             }
         } else {
-            // FALLO (Se mantiene igual)
             texto.innerHTML = "¡SE ESCAPÓ!";
             sprite.style.transform = "scale(0.35)";
             setTimeout(() => {
@@ -164,7 +164,6 @@ function iniciarCaptura(img, prob, msg) {
     }, 3500);
 }
 
-// 3. FUNCIÓN DE APERTURA CON RUTA BLINDADA
 function abrirCofre() {
     const sprite = document.getElementById('main-sprite');
     const texto = document.getElementById('main-text');
@@ -174,7 +173,6 @@ function abrirCofre() {
     sprite.style.opacity = "0";
     
     setTimeout(() => {
-        // Asegúrate de que el archivo es assets/img/anillo.png (todo minúsculas)
         sprite.src = "assets/img/anillo.png"; 
         sprite.classList.add('ring-reveal');
         sprite.style.opacity = "1";
