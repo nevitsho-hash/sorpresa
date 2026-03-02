@@ -1,6 +1,6 @@
 // Definición de audios [cite: 2026-03-01]
 const sonidoBoton = new Audio('assets/sng/clic.mp3');
-const sonidoCaptura = new Audio('assets/sng/captura.mp3'); 
+const sonidoCaptura = new Audio('assets/sng/captura.wav'); 
 
 let html5QrCode;
 let pokemonDetectado = true;
