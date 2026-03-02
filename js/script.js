@@ -34,8 +34,8 @@ function desbloquearAudio() {
             s.volume = 0.1;
             s.play().then(() => { s.pause(); s.currentTime = 0; s.volume = 1; }).catch(() => {});
         });
-        canalGrito.volume = 0.1;
-        canalGrito.play().then(() => { canalGrito.pause(); canalGrito.volume = 1; }).catch(() => {});
+        canalGrito.volume = 1,0;
+        canalGrito.play().then(() => { canalGrito.pause(); canalGrito.volume = 1.0; }).catch(() => {});
         audioDesbloqueado = true;
     }
 }
