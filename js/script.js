@@ -3,7 +3,6 @@ const sonidoBoton = new Audio('assets/sng/clic.mp3');
 const sonidoCaptura = new Audio('assets/sng/captura.wav'); 
 const sonidoEspera = new Audio('assets/sng/espera-pokeball.mp3'); 
 
-// Precarga de imágenes
 const preAnillo = new Image(); preAnillo.src = "assets/img/anillo.png"; 
 const preCofre = new Image(); preCofre.src = "assets/img/gengar-cofre.png";
 
@@ -32,15 +31,15 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
-// CORRECCIÓN: Desbloqueo silencioso para que no suene la captura al inicio
-function desbloquearAudio() {
+// Desbloqueo optimizado: no silencia el clic principal
+function desbloquearCanalesSecundarios() {
     if (!audioDesbloqueado) {
-        [sonidoBoton, sonidoCaptura, sonidoEspera].forEach(audio => {
-            audio.muted = true; // Silenciamos para el desbloqueo
+        [sonidoCaptura, sonidoEspera].forEach(audio => {
+            audio.muted = true;
             audio.play().then(() => {
                 audio.pause();
                 audio.currentTime = 0;
-                audio.muted = false; // Devolvemos el sonido para cuando se use de verdad
+                audio.muted = false;
             }).catch(() => {});
         });
         audioDesbloqueado = true;
@@ -48,10 +47,12 @@ function desbloquearAudio() {
 }
 
 async function activarEscaner() {
-    desbloquearAudio(); 
+    // 1. Sonido inmediato (Acción directa del usuario)
+    sonidoBoton.currentTime = 0;
+    sonidoBoton.play().catch(e => console.log("Error clic:", e));
     
-    // Ahora solo sonará el clic
-    sonidoBoton.play().catch(() => {}); 
+    // 2. Desbloqueo silencioso de los demás en paralelo
+    desbloquearCanalesSecundarios(); 
     
     document.getElementById('pokedex-content').style.display = 'none';
     document.getElementById('reader').style.display = 'block';
