@@ -27,42 +27,40 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
+// FUNCIÓN DE DESBLOQUEO (Silenciosa para evitar solapamientos)
 function desbloquearAudio() {
     if (!audioDesbloqueado) {
         Object.values(sonidos).forEach(s => {
-           const volumenOriginal = s.volume;
-
-        s.play().then(() => { s.pause(); s.currentTime = 0; s.muted = false;
-        s.volume = volumenOriginal;
-            }).catch(e => console.log("Audio Lock:", e));
+            s.muted = true; // Muteamos para que no se oiga nada al pulsar el botón verde
+            s.play().then(() => { 
+                s.pause(); 
+                s.currentTime = 0; 
+                s.muted = false; // Ya tenemos el permiso, quitamos el mute para después
+            }).catch(() => {});
         });
-        // Desbloqueo forzado del canal de gritos
+        
         canalGrito.muted = true;
-        canalGrito.play().then(() => {
-            canalGrito.pause();
-            canalGrito.currentTime = 0;
+        canalGrito.play().then(() => { 
+            canalGrito.pause(); 
             canalGrito.muted = false;
-        }).catch(e => console.log("Cry Channel Lock:", e));
-
+        }).catch(() => {});
+        
         audioDesbloqueado = true;
     }
 }
 
 async function activarEscaner() {
-    // 1. Ejecutamos el desbloqueo silencioso
-    desbloquearAudio();
+    // Desbloqueamos los canales en silencio absoluto
+    desbloquearAudio(); 
     
-    // 2. Esperamos un mini-instante y lanzamos SOLO el sonido del botón
-    setTimeout(() => {
-        sonidos.boton.currentTime = 0;
-        sonidos.boton.play().catch(() => {});
-    }, 50);
-
+    // Eliminado: sonidos.boton.play() para evitar ruidos al iniciar cámara
+    
+    pokemonDetectado = true;
     const sprite = document.getElementById('main-sprite');
-    sprite.onclick = null;
     sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'anillo-animado', 'captured-success');
     sprite.style.opacity = "1";
     sprite.style.transform = "scale(1)";
+
     document.getElementById('pokedex-content').style.display = 'none';
     document.getElementById('reader').style.display = 'block';
 
@@ -71,7 +69,7 @@ async function activarEscaner() {
         await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
             let code = text.toUpperCase().trim();
             if (pokemonDB[code]) {
-                // Pre-carga el audio del pokemon detectado
+                // Pre-carga el grito en el momento de la detección
                 canalGrito.src = pokemonDB[code].cry;
                 canalGrito.load();
                 
@@ -92,7 +90,7 @@ function actualizarPantalla() {
     const sprite = document.getElementById('main-sprite');
     sprite.src = pokemonActualData.sprite;
     
-    // Reproducción inmediata: el navegador ya lo considera "cargado por el usuario"
+    // Suena el grito del Pokémon detectado
     canalGrito.play().catch(e => console.log("Fallo audio:", e));
     
     pokemonDetectado = true;
