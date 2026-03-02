@@ -1,4 +1,4 @@
-// Definición de audios y precarga
+// Audios y Precarga
 const sonidoBoton = new Audio('assets/sng/clic.mp3');
 const sonidoCaptura = new Audio('assets/sng/captura.wav'); 
 const sonidoEspera = new Audio('assets/sng/espera-pokeball.mp3'); 
@@ -11,7 +11,7 @@ let pokemonDetectado = true;
 const fraseGengar = "UM SENTIMENTO<br>ESTRANHO...<br>GENGAR POR PERTO!";
 
 let pokemonActualData = { 
-    text: fraseGengar, 
+    text: "GENGAR", 
     sprite: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/94.png", 
     catchRate: 0.1, 
     cry: "assets/sng/gengar.mp3" 
@@ -62,7 +62,8 @@ function actualizarPantalla() {
     sprite.src = pokemonActualData.sprite;
     sprite.style.opacity = "1";
     sprite.style.transform = "scale(1)";
-    sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'captured-success');
+    sprite.onclick = null; // Limpiamos eventos previos
+    sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal');
     new Audio(pokemonActualData.cry).play().catch(() => {});
     pokemonDetectado = true;
 }
@@ -79,12 +80,10 @@ function capturarSuper() {
     iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/great-ball.png', (pokemonActualData.catchRate * 2), "¡SUPER BALL!");
 }
 
-// ... (Audios y base de datos iguales) ...
-
 function iniciarCaptura(img, prob, msg) {
     const sprite = document.getElementById('main-sprite');
     const texto = document.getElementById('main-text');
-    const pokemonSpriteURL = pokemonActualData.sprite; 
+    const pokemonNombre = pokemonActualData.text;
 
     sprite.src = img;
     sprite.classList.add('is-pokeball', 'shaking-hard');
@@ -97,61 +96,4 @@ function iniciarCaptura(img, prob, msg) {
 
     setTimeout(() => {
         sprite.classList.remove('shaking-slow');
-        if (Math.random() < prob) {
-            texto.innerHTML = "¡ATRAPADO!";
-            sonidoCaptura.currentTime = 0;
-            sonidoCaptura.play().catch(() => {}); 
-            sprite.classList.add('captured-success');
-            document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
-            pokemonDetectado = false;
-
-            // FASE: REVELACIÓN DEL COFRE INTERACTIVO
-            if (pokemonActualData.text.includes("GENGAR")) {
-                setTimeout(() => {
-                    sprite.src = "assets/img/gengar-cofre.png";
-                    sprite.classList.add('clickable-chest');
-                    texto.innerHTML = "GENGAR TIENE<br>ALGO PARA TI...";
-                    
-                    // Añadimos el evento de clic ÚNICAMENTE en este momento
-                    sprite.onclick = abrirCofre;
-                }, 2500);
-            }
-        } else {
-            // FALLO (Persistencia)
-            texto.innerHTML = "¡SE ESCAPÓ!";
-            sprite.style.transform = "scale(0.35)";
-            setTimeout(() => {
-                sprite.classList.remove('is-pokeball');
-                sprite.src = pokemonSpriteURL;
-                sprite.style.transform = "scale(1)"; 
-                setTimeout(() => { texto.innerHTML = pokemonActualData.text; }, 800);
-            }, 600);
-        }
-    }, 3500);
-}
-
-// FUNCIÓN DEFINITIVA: LA PROPUESTA [2026-03-02]
-function abrirCofre() {
-    const sprite = document.getElementById('main-sprite');
-    const texto = document.getElementById('main-text');
-
-    // Quitamos interactividad para que no se repita
-    sprite.onclick = null; 
-    sprite.classList.remove('clickable-chest');
-
-    // Animación de transición
-    sprite.style.opacity = "0";
-    
-    setTimeout(() => {
-        // Cambiamos al anillo
-        sprite.src = "assets/img/anillo.png"; 
-        sprite.classList.add('ring-reveal');
-        sprite.style.opacity = "1";
-        
-        // LA PREGUNTA
-        texto.innerHTML = "¿QUIERES SER<br>MI PAREJA?";
-        
-        // Opcional: Sonido de brillo/evolución si tienes uno
-        new Audio('assets/sng/brillo.mp3').play().catch(() => {});
-    }, 500);
-}
+        if (Math.random()
