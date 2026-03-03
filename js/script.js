@@ -62,31 +62,21 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
-// NUEVA VERSIÓN SILENCIOSA DE DESBLOQUEO
+// FUNCIÓN DE DESBLOQUEO MEJORADA (Efectiva y Silenciosa)
 function desbloquearAudio() {
     if (!audioDesbloqueado) {
-        // Reproducimos un instante en silencio para ganar el permiso del navegador
-        Object.values(sonidos).forEach(s => {
-            s.muted = true; 
-            s.play().then(() => {
-                s.pause();
-                s.currentTime = 0;
-                s.muted = false; 
-            }).catch(() => {});
-        });
-        
-        canalGrito.muted = true;
+        // Reproducimos un solo canal a volumen mínimo para "pagar el peaje" del navegador
+        // Usamos el canal de gritos para asegurar que quede habilitado
+        canalGrito.volume = 0.01; 
         canalGrito.play().then(() => {
             canalGrito.pause();
-            canalGrito.muted = false;
-        }).catch(() => {});
-        
-        audioDesbloqueado = true;
+            canalGrito.volume = 1.0;
+            audioDesbloqueado = true;
+        }).catch(err => console.log("Esperando interacción para audio..."));
     }
 }
 
 async function activarEscaner() {
-    // Desbloqueo silencioso al pulsar el botón verde
     desbloquearAudio();
 
     pokemonDetectado = true;
@@ -109,8 +99,10 @@ async function activarEscaner() {
         await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
             let code = text.toUpperCase().trim();
             if (pokemonDB[code]) {
+                // Preparamos el sonido del Pokémon específico
                 canalGrito.src = pokemonDB[code].cry;
                 canalGrito.load();
+                
                 html5QrCode.stop().then(() => {
                     pokemonActualData = pokemonDB[code];
                     actualizarPantalla();
@@ -129,11 +121,14 @@ function actualizarPantalla() {
     const sprite = document.getElementById('main-sprite');
     sprite.src = pokemonActualData.sprite;
     
+    // Reproducción del grito con un pequeño delay para asegurar la carga
     setTimeout(() => {
-        canalGrito.play().catch(() => {
-            setTimeout(() => canalGrito.play(), 300);
+        canalGrito.play().catch(e => {
+            // Reintento por si el navegador bloqueó el primer intento
+            setTimeout(() => canalGrito.play(), 200);
         });
-    }, 200);
+    }, 300);
+    
     pokemonDetectado = true;
 }
 
