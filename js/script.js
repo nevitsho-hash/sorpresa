@@ -13,6 +13,7 @@ let pokemonDetectado = true;
 let audioDesbloqueado = false;
 let pokemonActualData = null;
 
+// 2. BASE DE DATOS DE POKÉMON PERSONALIZADA
 const pokemonDB = {
     "BEAUTIFLY": { 
         text: "¡MIRA ESA BEAUTIFLY!<br>SUS ALAS SON BELLAS,<br>¡PERO TU ERES MAS!", 
@@ -62,10 +63,10 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
-// DESBLOQUEO DE AUDIO (Ajustado para no "pisar" el volumen posterior)
+// DESBLOQUEO SILENCIOSO (Para ganar permiso de audio en móviles)
 function desbloquearAudio() {
     if (!audioDesbloqueado) {
-        canalGrito.volume = 0.05; // Un toque mínimo audible para el navegador
+        canalGrito.volume = 0.05; 
         canalGrito.play().then(() => {
             canalGrito.pause();
             canalGrito.currentTime = 0;
@@ -117,7 +118,7 @@ function actualizarPantalla() {
     const sprite = document.getElementById('main-sprite');
     sprite.src = pokemonActualData.sprite;
     
-    // REFUERZO DE VOLUMEN AL MÁXIMO
+    // Reproducción del grito a volumen máximo
     setTimeout(() => {
         canalGrito.volume = 1.0; 
         canalGrito.play().catch(() => {
@@ -234,12 +235,34 @@ function abrirCofre() {
     const texto = document.getElementById('main-text');
     sprite.onclick = null;
     sprite.style.opacity = "0";
+    
     setTimeout(() => {
         sprite.src = "assets/img/anillo.png";
         sprite.style.opacity = "1";
         sprite.classList.add('ring-reveal');
+        
+        // --- TU FRASE FINAL PERSONALIZADA ---
         texto.innerHTML = "NI SIQUIERA GENGAR<br>PUDO OCULTAR...<br>LO QUE EL DESTINO<br>TENIA GUARDADO";
-        setTimeout(() => { sprite.classList.add('anillo-animado'); }, 1500);
+        
+        // --- MÚSICA ROMÁNTICA FINAL ---
+        const musicaFinal = new Audio('assets/sng/cancionfinal.mp3');
+        musicaFinal.volume = 0; 
+        musicaFinal.play().catch(e => console.log("Audio final listo"));
+
+        // Fade-in suave del volumen
+        let vol = 0;
+        const fadeIn = setInterval(() => {
+            if (vol < 0.8) {
+                vol += 0.05;
+                musicaFinal.volume = vol;
+            } else {
+                clearInterval(fadeIn);
+            }
+        }, 150);
+
+        setTimeout(() => { 
+            sprite.classList.add('anillo-animado'); 
+        }, 1500);
     }, 500);
 }
 
