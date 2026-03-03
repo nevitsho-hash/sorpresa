@@ -62,17 +62,15 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
-// FUNCIÓN DE DESBLOQUEO MEJORADA (Efectiva y Silenciosa)
+// DESBLOQUEO DE AUDIO (Ajustado para no "pisar" el volumen posterior)
 function desbloquearAudio() {
     if (!audioDesbloqueado) {
-        // Reproducimos un solo canal a volumen mínimo para "pagar el peaje" del navegador
-        // Usamos el canal de gritos para asegurar que quede habilitado
-        canalGrito.volume = 0.01; 
+        canalGrito.volume = 0.05; // Un toque mínimo audible para el navegador
         canalGrito.play().then(() => {
             canalGrito.pause();
-            canalGrito.volume = 1.0;
+            canalGrito.currentTime = 0;
             audioDesbloqueado = true;
-        }).catch(err => console.log("Esperando interacción para audio..."));
+        }).catch(err => console.log("Permiso de audio pendiente..."));
     }
 }
 
@@ -99,10 +97,8 @@ async function activarEscaner() {
         await html5QrCode.start({ facingMode: "environment" }, { fps: 20, qrbox: 250 }, (text) => {
             let code = text.toUpperCase().trim();
             if (pokemonDB[code]) {
-                // Preparamos el sonido del Pokémon específico
                 canalGrito.src = pokemonDB[code].cry;
                 canalGrito.load();
-                
                 html5QrCode.stop().then(() => {
                     pokemonActualData = pokemonDB[code];
                     actualizarPantalla();
@@ -121,11 +117,14 @@ function actualizarPantalla() {
     const sprite = document.getElementById('main-sprite');
     sprite.src = pokemonActualData.sprite;
     
-    // Reproducción del grito con un pequeño delay para asegurar la carga
+    // REFUERZO DE VOLUMEN AL MÁXIMO
     setTimeout(() => {
-        canalGrito.play().catch(e => {
-            // Reintento por si el navegador bloqueó el primer intento
-            setTimeout(() => canalGrito.play(), 200);
+        canalGrito.volume = 1.0; 
+        canalGrito.play().catch(() => {
+            setTimeout(() => {
+                canalGrito.volume = 1.0;
+                canalGrito.play();
+            }, 200);
         });
     }, 300);
     
@@ -134,14 +133,18 @@ function actualizarPantalla() {
 
 function capturarNormal() {
     if (!pokemonDetectado || !pokemonActualData) return;
+    sonidos.boton.volume = 1.0;
     sonidos.boton.play().catch(() => {});
+    sonidos.espera.volume = 1.0;
     sonidos.espera.play().catch(() => {});
     iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png', pokemonActualData.catchRate, "¡POKÉ BALL!");
 }
 
 function capturarSuper() {
     if (!pokemonDetectado || !pokemonActualData) return;
+    sonidos.boton.volume = 1.0;
     sonidos.boton.play().catch(() => {});
+    sonidos.espera.volume = 1.0;
     sonidos.espera.play().catch(() => {});
     
     let probFinal = pokemonActualData.catchRate * 2;
@@ -179,6 +182,7 @@ function iniciarCaptura(img, prob, msg) {
             sprite.classList.remove('shaking-slow');
             if (Math.random() < prob) {
                 texto.innerHTML = "¡ATRAPADO!";
+                sonidos.captura.volume = 1.0;
                 sonidos.captura.play().catch(() => {});
                 sprite.classList.remove('is-pokeball');
                 document.querySelectorAll('.led').forEach(l => l.classList.add('success'));
@@ -193,6 +197,7 @@ function iniciarCaptura(img, prob, msg) {
                         setTimeout(() => {
                             sprite.classList.remove('captured-success');
                             sprite.src = "assets/img/gengar-cofre.png";
+                            sonidos.brillo.volume = 1.0;
                             sonidos.brillo.play().catch(() => {});
                             sprite.style.opacity = "1";
                             sprite.style.transform = "scale(1.2)";
@@ -206,6 +211,7 @@ function iniciarCaptura(img, prob, msg) {
                 }
             } else {
                 texto.innerHTML = "¡SE ESCAPÓ!";
+                sonidos.escapo.volume = 1.0;
                 sonidos.escapo.play().catch(() => {});
                 sprite.style.transform = "scale(0.35)";
                 setTimeout(() => {
