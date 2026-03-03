@@ -238,7 +238,7 @@ function abrirCofre() {
         sprite.src = "assets/img/anillo.png";
         sprite.style.opacity = "1";
         sprite.classList.add('ring-reveal');
-        texto.innerHTML = "¿QUIERES SER<br>MI PAREJA?";
+        texto.innerHTML = "NI SIQUIERA GENGAR<br>PUDO OCULTAR...<br>LO QUE EL DESTINO<br>TENIA GUARDADO";
         setTimeout(() => { sprite.classList.add('anillo-animado'); }, 1500);
     }, 500);
 }
