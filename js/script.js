@@ -75,7 +75,10 @@ function desbloquearAudio() {
 }
 
 async function activarEscaner() {
+    // Llamamos a desbloquear audio para que el móvil permita sonidos futuros,
+    // pero NO ejecutamos sonidos.boton.play() aquí.
     desbloquearAudio();
+
     pokemonDetectado = true;
     const sprite = document.getElementById('main-sprite');
     sprite.classList.remove('is-pokeball', 'shaking-hard', 'shaking-slow', 'clickable-chest', 'ring-reveal', 'anillo-animado', 'captured-success');
@@ -126,12 +129,15 @@ function actualizarPantalla() {
 
 function capturarNormal() {
     if (!pokemonDetectado || !pokemonActualData) return;
+    // El sonido de clic se mantiene para los botones de captura (Azul/Negro)
+    sonidos.boton.play().catch(() => {});
     sonidos.espera.play().catch(() => {});
     iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png', pokemonActualData.catchRate, "¡POKÉ BALL!");
 }
 
 function capturarSuper() {
     if (!pokemonDetectado || !pokemonActualData) return;
+    sonidos.boton.play().catch(() => {});
     sonidos.espera.play().catch(() => {});
     
     let probFinal = pokemonActualData.catchRate * 2;
