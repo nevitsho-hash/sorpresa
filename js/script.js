@@ -62,21 +62,31 @@ window.addEventListener('DOMContentLoaded', () => {
     html5QrCode = new Html5Qrcode("reader");
 });
 
+// NUEVA VERSIÓN SILENCIOSA DE DESBLOQUEO
 function desbloquearAudio() {
     if (!audioDesbloqueado) {
+        // Reproducimos un instante en silencio para ganar el permiso del navegador
         Object.values(sonidos).forEach(s => {
-            s.volume = 0.1;
-            s.play().then(() => { s.pause(); s.currentTime = 0; s.volume = 1; }).catch(() => {});
+            s.muted = true; 
+            s.play().then(() => {
+                s.pause();
+                s.currentTime = 0;
+                s.muted = false; 
+            }).catch(() => {});
         });
-        canalGrito.volume = 1.0;
-        canalGrito.play().then(() => { canalGrito.pause(); canalGrito.volume = 1.0; }).catch(() => {});
+        
+        canalGrito.muted = true;
+        canalGrito.play().then(() => {
+            canalGrito.pause();
+            canalGrito.muted = false;
+        }).catch(() => {});
+        
         audioDesbloqueado = true;
     }
 }
 
 async function activarEscaner() {
-    // Llamamos a desbloquear audio para que el móvil permita sonidos futuros,
-    // pero NO ejecutamos sonidos.boton.play() aquí.
+    // Desbloqueo silencioso al pulsar el botón verde
     desbloquearAudio();
 
     pokemonDetectado = true;
@@ -129,7 +139,6 @@ function actualizarPantalla() {
 
 function capturarNormal() {
     if (!pokemonDetectado || !pokemonActualData) return;
-    // El sonido de clic se mantiene para los botones de captura (Azul/Negro)
     sonidos.boton.play().catch(() => {});
     sonidos.espera.play().catch(() => {});
     iniciarCaptura('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/items/poke-ball.png', pokemonActualData.catchRate, "¡POKÉ BALL!");
